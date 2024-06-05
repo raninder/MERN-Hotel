@@ -1,10 +1,27 @@
 import express, {Request, Response} from "express";
 import User from "../models/user";
 import jwt from 'jsonwebtoken';
+import { check, validationResult } from "express-validator";
 
 const router = express.Router();
 
-router.post("/register", async ( req: Request, res: Response)=>{
+// whenever this post request comoes /api/users/register 
+// router.post("/register", 
+router.post(
+    "/register",
+    [
+      check("firstName", "First Name is required").isString(),
+      check("lastName", "Last Name is required").isString(),
+      check("email", "Email is required").isEmail(),
+      check("password", "Password with 6 or more characters required").isLength({
+        min: 6,
+      }),
+    ],
+async ( req: Request, res: Response)=>{
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.array() });
+    }
     try{
         // check if user matches with user from db
         let user = await User.findOne({
@@ -23,7 +40,7 @@ router.post("/register", async ( req: Request, res: Response)=>{
         const token = jwt.sign(
             { userId:user.id },
             process.env.JWT_SECRET_KEY as string, {
-                expiresIn: "id"
+                expiresIn: "1d"
             }
         );
 
@@ -40,3 +57,5 @@ router.post("/register", async ( req: Request, res: Response)=>{
     }
     }
 )
+
+export default router;
